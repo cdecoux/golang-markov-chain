@@ -28,14 +28,14 @@ func main() {
 	mkvChain := markov.NewMarkovChain("a", "b", "c")
 
 	_ = mkvChain.SetWeight("a", "b", 1)
-	_ = mkvChain.SetWeight("a", "c", 1)
+	_ = mkvChain.SetWeight("a", "a", 5)
 	_ = mkvChain.SetWeight("b", "c", 1)
 	_ = mkvChain.SetWeight("c", "c", 10)
 	_ = mkvChain.SetWeight("c", "a", 1)
 
 
 	// Indefinitely loop through chain
-	var currentState interface{} = "a"
+	currentState := markov.State("a")
 	counter := make(map[interface{}]int)
 	ticker := time.NewTicker(time.Second).C
 

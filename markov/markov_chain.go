@@ -5,6 +5,8 @@ import (
 	backpack "github.com/cdecoux/golang-backpack/pkg"
 )
 
+type State interface {}
+
 /*
 	chain is a 2d Map that declares weights for stepping from one object to the next
  */
@@ -12,7 +14,7 @@ type markovChainStruct struct {
 	chain map[interface{}]map[interface{}]int
 }
 
-func NewMarkovChain(initialStates ...interface{})  *markovChainStruct {
+func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 
 	chain := make(map[interface{}]map[interface{}]int)
 
@@ -27,7 +29,7 @@ func NewMarkovChain(initialStates ...interface{})  *markovChainStruct {
 	return markovChain
 }
 
-func (self *markovChainStruct) SetOrCreateWeight(src interface{}, dst interface{}, weight int) {
+func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight int) {
 	self.chain[src][dst] = weight
 	if weights, ok := self.chain[src]; ok {
 		weights[dst] = weight
@@ -37,7 +39,7 @@ func (self *markovChainStruct) SetOrCreateWeight(src interface{}, dst interface{
 	}
 }
 
-func (self *markovChainStruct) SetWeight(src interface{}, dst interface{}, weight int) error {
+func (self *markovChainStruct) SetWeight(src State, dst State, weight int) error {
 	self.chain[src][dst] = weight
 	if weights, ok := self.chain[src]; ok {
 		weights[dst] = weight
@@ -47,7 +49,7 @@ func (self *markovChainStruct) SetWeight(src interface{}, dst interface{}, weigh
 	}
 }
 
-func (self *markovChainStruct) Step(src interface{}) interface{} {
+func (self *markovChainStruct) Step(src State) State {
 	selector, err := backpack.NewDistributionSelector(self.chain[src])
 	if err != nil {
 		return nil
