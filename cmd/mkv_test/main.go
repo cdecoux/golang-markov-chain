@@ -4,7 +4,6 @@ import (
 	"github.com/cdecoux/golang-markvon-chain/markov"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"time"
 )
 
 func main() {
@@ -25,29 +24,24 @@ func main() {
 	log.SetLevel(logLevel)
 
 
-	mkvChain := markov.NewMarkovChain("a", "b", "c")
+	mkvChain := markov.NewMarkovChain([]markov.State{"a", "b", "c", 1, 2, 3}...)
 
-	_ = mkvChain.SetWeight("a", "b", 1)
-	_ = mkvChain.SetWeight("a", "a", 5)
-	_ = mkvChain.SetWeight("b", "c", 1)
-	_ = mkvChain.SetWeight("c", "c", 10)
-	_ = mkvChain.SetWeight("c", "a", 1)
+	// a
+	_ = mkvChain.SetWeight("a", "b", 50)
+	_ = mkvChain.SetWeight("a", "a", 60)
+	_ = mkvChain.SetWeight("a", 1, 1)
+	// b
+	_ = mkvChain.SetWeight("b", "c", 100)
+	_ = mkvChain.SetWeight("b", "b", 5)
+	_ = mkvChain.SetWeight("b", 2, 1)
+	// c
+	_ = mkvChain.SetWeight("c", "c", 100)
+	_ = mkvChain.SetWeight("c", "a", 25)
+	_ = mkvChain.SetWeight("c", 3, 1)
 
 
-	// Indefinitely loop through chain
-	currentState := markov.State("a")
-	counter := make(map[interface{}]int)
-	ticker := time.NewTicker(time.Second).C
+	steps := mkvChain.StepN("a", 100)
 
-	log.Info(currentState)
-
-	for i := 0; i < 10000; i++ {
-		select {
-			case <- ticker:
-				currentState = mkvChain.Step(currentState)
-				counter[currentState]++
-				log.Info(currentState)
-		}
-	}
+	log.Info(steps)
 
 }
