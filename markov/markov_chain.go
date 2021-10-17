@@ -7,6 +7,7 @@ import (
 )
 
 type State interface {}
+type Mapping map[State]map[State]int
 
 /*
 	chain is a 2d Map that declares weights for stepping from one object to the next
@@ -36,6 +37,38 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 	return markovChain
 }
 
+/*
+	Takes in a mapping and updates existing chain settings.
+	Allows for new states to be added.
+ */
+func (self *markovChainStruct) UpsertChain(m Mapping)  {
+	// Go through mapping and update
+	for src, distribution := range m {
+		for dst, weight := range distribution {
+			self.SetOrCreateWeight(src, dst, weight)
+		}
+	}
+}
+
+/*
+	Takes in a mapping and updates existing chain settings.
+	Throws an error should new states try to be added
+*/
+func (self *markovChainStruct) UpdateChain(m Mapping) error {
+	// Go through mapping and update
+	for src, distribution := range m {
+		for dst, weight := range distribution {
+			err := self.SetWeight(src, dst, weight)
+			if err != nil {
+				log.Error(err)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (self *markovChainStruct) AddStates(states ...State)  {
 	for _, state := range states {
 		// Check if state already exists, so we don't remake slice
@@ -46,7 +79,6 @@ func (self *markovChainStruct) AddStates(states ...State)  {
 }
 
 func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight int) {
-	self.chain[src][dst] = weight
 	if weights, ok := self.chain[src]; ok {
 		weights[dst] = weight
 	} else {
@@ -113,6 +145,7 @@ func (self *markovChainStruct) StepN(src State, n int) []State {
 	currentState := src
 
 	for i := 0; i < n; i++ {
+		// Return results if state is nil. nil is treated as an 'end' state
 		if currentState == nil {
 			return results
 		}
