@@ -19,9 +19,15 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 
 	chain := make(map[interface{}]map[interface{}]int)
 
-	for _, state := range initialStates {
-		chain[state] = make(map[interface{}]int)
+	for _, src := range initialStates {
+		chain[src] = make(map[interface{}]int)
+
+		for _, dst := range initialStates {
+			chain[src][dst] = 0
+		}
 	}
+
+	log.Debug(chain)
 
 	markovChain := &markovChainStruct{
 		chain: chain,
@@ -50,13 +56,17 @@ func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight in
 }
 
 func (self *markovChainStruct) SetWeight(src State, dst State, weight int) error {
-	self.chain[src][dst] = weight
+	// Check if src/dst are in chain.
+	// If they don't exists, then throw errors
 	if weights, ok := self.chain[src]; ok {
-		weights[dst] = weight
-		return nil
-	} else {
-		return errors.New("src was not in existing chain")
+		if _, ok := weights[dst]; ok {
+			weights[dst] = weight
+		}
+
+		return errors.New("dst was not in existing chain")
 	}
+
+	return errors.New("src was not in existing chain")
 }
 
 func (self *markovChainStruct) step(src State, selector backpack.DistributionSelector) State {
@@ -83,7 +93,11 @@ func (self *markovChainStruct) Step(src State) State {
 	return self.step(src, selector)
 }
 
-// Does N steps and returns an ordered slice.
+/*
+	Does N steps and returns an ordered slice of steps.
+	Should the markov chain not be cyclic, <nil> will be used for the terminator.
+	This function will immediately return the results once <nil> is hit regardless of 'n'
+ */
 func (self *markovChainStruct) StepN(src State, n int) []State {
 
 	// Create State slice for returning

@@ -24,19 +24,19 @@ func main() {
 	log.SetLevel(logLevel)
 
 
-	mkvChain := markov.NewMarkovChain([]markov.State{"a", "b", "c", 1, 2, 3}...)
+	mkvChain := markov.NewMarkovChain([]markov.State{"a", nil, "c", 1, 2, 3}...)
 
 	// a
 	_ = mkvChain.SetWeight("a", "b", 50)
-	_ = mkvChain.SetWeight("a", "a", 60)
+	_ = mkvChain.SetWeight("a", nil, 1)
 	_ = mkvChain.SetWeight("a", 1, 1)
 	// b
 	_ = mkvChain.SetWeight("b", "c", 100)
 	_ = mkvChain.SetWeight("b", "b", 5)
 	_ = mkvChain.SetWeight("b", 2, 1)
 	// c
-	_ = mkvChain.SetWeight("c", "c", 100)
-	_ = mkvChain.SetWeight("c", "a", 25)
+	_ = mkvChain.SetWeight(nil, "c", 100)
+	_ = mkvChain.SetWeight("c", nil, 25)
 	_ = mkvChain.SetWeight("c", 3, 1)
 
 
