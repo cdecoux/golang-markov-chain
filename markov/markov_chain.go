@@ -3,6 +3,7 @@ package markov
 import (
 	"errors"
 	backpack "github.com/cdecoux/golang-backpack/pkg"
+	log "github.com/sirupsen/logrus"
 )
 
 type State interface {}
@@ -29,6 +30,15 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 	return markovChain
 }
 
+func (self *markovChainStruct) AddStates(states ...State)  {
+	for _, state := range states {
+		// Check if state already exists, so we don't remake slice
+		if _, exists := self.chain[state]; !exists {
+			self.chain[state] = make(map[interface{}]int)
+		}
+	}
+}
+
 func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight int) {
 	self.chain[src][dst] = weight
 	if weights, ok := self.chain[src]; ok {
@@ -49,17 +59,54 @@ func (self *markovChainStruct) SetWeight(src State, dst State, weight int) error
 	}
 }
 
+func (self *markovChainStruct) step(src State, selector backpack.DistributionSelector) State {
+
+	var selection State
+	var err error
+	if selector != nil {
+		selection, err = selector.SelectRandom()
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+	}
+	return selection
+}
+
 func (self *markovChainStruct) Step(src State) State {
 	selector, err := backpack.NewDistributionSelector(self.chain[src])
 	if err != nil {
+		log.Error(err)
 		return nil
 	}
 
-	selection, err := selector.SelectRandom()
-	if err != nil {
-		return nil
+	return self.step(src, selector)
+}
+
+// Does N steps and returns an ordered slice.
+func (self *markovChainStruct) StepN(src State, n int) []State {
+
+	// Create State slice for returning
+	results := make([]State, 0, n)
+
+	// Create cache for distribution selectors
+	selectorCache := make(map[State]backpack.DistributionSelector)
+	for state, distributionMap := range self.chain {
+		selector, _ := backpack.NewDistributionSelector(distributionMap)
+		selectorCache[state] = selector
 	}
 
-	return selection
+	currentState := src
+
+	for i := 0; i < n; i++ {
+		if currentState == nil {
+			return results
+		}
+		state := self.step(currentState, selectorCache[currentState])
+		results = append(results, state)
+		currentState = state
+	}
+
+	return results
 }
 
