@@ -22,10 +22,6 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 
 	for _, src := range initialStates {
 		chain[src] = make(map[interface{}]int)
-
-		for _, dst := range initialStates {
-			chain[src][dst] = 0
-		}
 	}
 
 	log.Debug(chain)
@@ -39,22 +35,12 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 
 
 /*
-	Returns a slice of states that exists in this chain (as a source or a destination in the chain map).
+	Returns a slice of states that exists in this chain. Only checks top level map keys.
  */
 func (self *markovChainStruct) GetStates() []State {
-	statesSet := make(map[State]bool, len(self.chain))
-
-	// Get a Set of states using a map
-	for srcState, distributionMap := range self.chain {
-		statesSet[srcState] = true
-		for dstState, _ := range distributionMap {
-			statesSet[dstState] = true
-		}
-	}
-
 	// Convert map set to a slice
-	states := make([]State, 0,  len(statesSet))
-	for state, _ := range statesSet {
+	states := make([]State, 0,  len(self.chain))
+	for state, _ := range self.chain {
 		states = append(states, state)
 	}
 	return states
@@ -101,21 +87,25 @@ func (self *markovChainStruct) AddStates(states ...State)  {
 	}
 }
 
-func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight int) {
-	if weights, ok := self.chain[src]; ok {
-		weights[dst] = weight
-	} else {
-		self.chain[src] = make(map[interface{}]int)
-		self.chain[src][dst] = weight
-	}
+func (self *markovChainStruct) SetOrCreateWeight(src State, dst State, weight int) error {
+	// Add states to chain (won't overwrite existing states)
+	self.AddStates(src, dst)
+	err := self.SetWeight(src, dst, weight)
+	return err
 }
 
 func (self *markovChainStruct) SetWeight(src State, dst State, weight int) error {
+	// Check for nil src
+	if src == nil {return errors.New("NIL is terminating, can not transition from NIL")}
+
 	// Check if src/dst are in chain.
 	// If they don't exists, then throw errors
 	if weights, ok := self.chain[src]; ok {
-		if _, ok := weights[dst]; ok {
+
+		// Check dst in the top level of the chain, since we allow for jagged 2D maps.
+		if _, ok := self.chain[dst]; ok {
 			weights[dst] = weight
+			return nil
 		}
 
 		return errors.New("dst was not in existing chain")
@@ -139,6 +129,9 @@ func (self *markovChainStruct) step(src State, selector backpack.DistributionSel
 }
 
 func (self *markovChainStruct) Step(src State) State {
+	//// Check if src has outbound transitions (length of map is 0/nil). Else it might crash the selector
+	if len(self.chain[src]) == 0 {return nil}
+
 	selector, err := backpack.NewDistributionSelector(self.chain[src])
 	if err != nil {
 		log.Error(err)
