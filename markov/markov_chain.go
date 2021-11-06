@@ -37,6 +37,29 @@ func NewMarkovChain(initialStates ...State)  *markovChainStruct {
 	return markovChain
 }
 
+
+/*
+	Returns a slice of states that exists in this chain (as a source or a destination in the chain map).
+ */
+func (self *markovChainStruct) GetStates() []State {
+	statesSet := make(map[State]bool, len(self.chain))
+
+	// Get a Set of states using a map
+	for srcState, distributionMap := range self.chain {
+		statesSet[srcState] = true
+		for dstState, _ := range distributionMap {
+			statesSet[dstState] = true
+		}
+	}
+
+	// Convert map set to a slice
+	states := make([]State, 0,  len(statesSet))
+	for state, _ := range statesSet {
+		states = append(states, state)
+	}
+	return states
+}
+
 /*
 	Takes in a mapping and updates existing chain settings.
 	Allows for new states to be added.
