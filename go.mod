@@ -1,4 +1,4 @@
-module github.com/cdecoux/golang-markvon-chain
+module github.com/cdecoux/golang-markov-chain
 
 go 1.17
 
